@@ -1,9 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>FaceID</title>
-<link rel="icon" type="image/jpeg" href="CC2429BF-4C11-426C-9824-FD374A5D7FDD.png">
-<link rel="apple-touch-icon" href="CC2429BF-4C11-426C-9824-FD374A5D7FDD.png">
+<title>Face Clock</title>
 <style>
 :root{--bg:#f3f4f8;--sf:#fff;--sf2:#f6f7fb;--tx:#171a21;--mut:#6b7385;--bd:#e5e8f0;--pr:#4f46e5;--prs:#eef0ff;--ok:#059669;--bad:#e11d48;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0e1015;--sf:#171a22;--sf2:#1d212b;--tx:#eef0f6;--mut:#98a1b3;--bd:#272c38;--pr:#8b85ff;--prs:#23244a;--ok:#34d399;--bad:#fb7185}}
@@ -29,6 +27,25 @@ input,select{font:inherit;font-size:16px;width:100%;height:50px;padding:0 14px;b
 .sheet{background:var(--sf);width:100%;max-width:520px;border-radius:24px 24px 0 0;padding:18px;max-height:90%;overflow:auto}
 .w{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd)}.w b{flex:1}.w button{padding:8px 12px;border-radius:10px;background:var(--prs);color:var(--pr);font-weight:600}.w .x{background:var(--sf2);color:var(--bad)}
 .lg{display:flex;align-items:center;justify-content:space-between;margin-top:12px}.lg button.on{background:var(--pr);color:#fff}.lg button{padding:8px 14px;border-radius:10px;background:var(--sf2)}
+
+/* camera UX */
+.chead{display:flex;align-items:center;justify-content:space-between;width:min(100%,360px)}
+.mode{padding:6px 14px;border-radius:99px;font-weight:700;font-size:14px}.mode.in{background:#05966933;color:#34d399}.mode.out{background:#e11d4833;color:#fb7185}.mode.en{background:#8b85ff33;color:#c2beff}
+.tmr{font-variant-numeric:tabular-nums;font-weight:700;opacity:.8;min-width:36px;text-align:end}
+.vw .scan{position:absolute;left:10%;right:10%;top:12%;height:2px;background:linear-gradient(90deg,transparent,#8b85ff,transparent);box-shadow:0 0 14px #8b85ff;animation:scanl 2.2s ease-in-out infinite alternate;z-index:2}
+@keyframes scanl{to{top:86%}}.vw.f1 .scan,.vw.ok .scan{display:none}
+.vw.f1:not(.ok){border-color:#f59e0b;box-shadow:0 0 0 8px #f59e0b22,0 18px 60px #0009}.vw.f1:not(.ok):after{border-color:#f59e0bcc}.vw.ok:after{border-color:#34d399}
+.vw{transition:border-color .25s,box-shadow .25s}.vw:after{transition:border-color .25s}
+.pbar{position:absolute;left:0;right:0;bottom:0;height:4px;background:#ffffff22;z-index:3}.pbar i{display:block;height:100%;width:0;background:#8b85ff;transition:width .2s linear}
+.hint{position:absolute;left:50%;bottom:16px;transform:translate(-50%,8px);width:max-content;max-width:88%;padding:6px 12px;border-radius:14px;font-size:13px;font-weight:700;line-height:1.4;opacity:0;transition:.2s;z-index:3;pointer-events:none}
+.hint.on{opacity:1;transform:translate(-50%,0)}.hint.warn{background:#f59e0bee;color:#1b1300}.hint.good{background:#059669ee;color:#fff}
+.vw.fl:before{content:"";position:absolute;inset:0;background:#fff;z-index:4;animation:fadeo .26s forwards}@keyframes fadeo{from{opacity:.55}to{opacity:0}}
+.steps{display:flex;align-items:center;justify-content:center;gap:8px;min-height:30px}.steps u{width:18px;height:2px;background:#ffffff2a}
+.stp{display:flex;align-items:center;gap:6px;font-size:13px;color:#9aa3b8}.stp i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:12px;background:#ffffff1c}
+.stp.on{color:#fff;font-weight:700}.stp.on i{background:#6d66f0;animation:pulse2 1.2s infinite}.stp.dn{color:#34d399}.stp.dn i{background:#059669;color:#fff}
+@keyframes pulse2{0%,100%{box-shadow:0 0 0 0 #8b85ff88}50%{box-shadow:0 0 0 6px transparent}}
+.dots{display:flex;gap:9px}.dt{width:14px;height:14px;border-radius:50%;background:#ffffff26;transition:.25s}.dt.on{background:#34d399;transform:scale(1.2)}
+.ov #st{font-size:17px;min-height:26px}
 </style></head><body>
 <div id="lgn" class="card" style="display:none;margin-top:60px"><h1 id="t0" style="font-size:19px;margin:0 0 6px;text-align:center"></h1>
 <input type="email" id="em" autocomplete="username" autocapitalize="none"><input type="password" id="pw" autocomplete="current-password">
@@ -38,8 +55,8 @@ input,select{font:inherit;font-size:16px;width:100%;height:50px;padding:0 14px;b
 <div class="clock"><b id="ck">00:00:00</b><span id="cd"></span></div>
 <div class="row"><button class="big in" data-a="scan" data-m="in"><span id="bi"></span><small id="bi2"></small></button><button class="big out" data-a="scan" data-m="out"><span id="bo"></span><small id="bo2"></small></button></div>
 <div class="card" id="lastc"><b id="lt"></b><div id="lst" class="mut" style="margin-top:8px"></div></div></div>
-<div class="ov" id="cam"><div class="vw" id="vw"><video id="v" playsinline muted autoplay></video></div><div id="st"></div><div class="camhelp" id="camhelp">ضع وجهك داخل الإطار، واجعل الإضاءة أمامك ثم انظر إلى الكاميرا.</div><button class="sec" style="max-width:260px;background:#ffffff22;color:#fff" data-a="stop" id="cx"></button></div>
-<div class="ov" id="res"><div class="chk" id="rc"></div><div id="rt" style="font-size:22px;font-weight:700;margin-top:16px"></div><div id="rs" style="margin-top:6px;opacity:.85"></div></div>
+<div class="ov" id="cam"><div class="chead"><span class="mode" id="cm"></span><span class="tmr" id="ct"></span></div><div class="vw" id="vw"><video id="v" playsinline muted autoplay></video><div class="scan"></div><div class="hint" id="hn"></div><div class="pbar"><i id="pi"></i></div></div><div class="steps" id="sp"></div><div id="st"></div><div class="camhelp" id="camhelp">ضع وجهك داخل الإطار، واجعل الإضاءة أمامك ثم انظر إلى الكاميرا.</div><button class="sec" style="max-width:260px;background:#ffffff22;color:#fff" data-a="stop" id="cx"></button></div>
+<div class="ov" id="res"><div class="chk" id="rc"></div><div id="rt" style="font-size:22px;font-weight:700;margin-top:16px"></div><div id="rs" style="margin-top:6px;opacity:.85;max-width:320px;line-height:1.6"></div><button class="sec" id="rr" data-a="retry" style="display:none;max-width:260px;margin-top:22px;background:var(--pr);color:#fff"></button></div>
 <div class="sh" id="sh"><div class="sheet" id="sb"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
 <script>
@@ -60,6 +77,10 @@ var K={title:['بصمة الوجه للحضور','Pointage facial','Face clock']
  mv:['حرّك رأسك قليلاً','Bougez un peu la tête','Move your head slightly'],saved:['تم الحفظ','Enregistré','Saved'],
  live:['التحقق من الرمش (ضد الصور)','Anti-photo (clignement)','Anti-photo (blink)'],sens:['الحساسية','Sensibilité','Sensitivity'],
  s1:['صارم','Strict','Strict'],s2:['عادي','Normal','Normal'],s3:['متساهل','Souple','Lenient'],out2:['تسجيل الخروج من الحساب','Déconnexion','Log out'],close:['إغلاق','Fermer','Close'],
+g1:['الوجه','Visage','Face'],g2:['الرمشة','Clignement','Blink'],g3:['تأكيد','Validation','Confirm'],
+ h0:['لا يظهر وجه — ضعه داخل الإطار','Aucun visage — placez-le dans le cadre','No face — fit it in the frame'],h1:['قرّب وجهك قليلاً','Rapprochez-vous un peu','Move a bit closer'],h2:['ابتعد قليلاً','Éloignez-vous un peu','Move back a little'],h3:['اجعل وجهك في المنتصف','Centrez votre visage','Center your face'],h4:['الإضاءة ضعيفة — واجه الضوء','Lumière faible — faites face à la lumière','Low light — face the light'],
+ rt:['إعادة المحاولة','Réessayer','Try again'],an:['تعذر تحليل الصورة','Analyse impossible','Could not analyze'],tip:['قرّب وجهك، حسّن الإضاءة، وانظر مباشرة إلى الكاميرا','Rapprochez-vous, améliorez la lumière et regardez la caméra','Move closer, improve lighting and look straight at the camera'],
+ pz0:['انظر مباشرة إلى الكاميرا','Regardez droit devant','Look straight ahead'],pz1:['أدر رأسك قليلاً لليمين','Tournez un peu la tête à droite','Turn your head slightly right'],pz2:['أدر رأسك قليلاً لليسار','Tournez un peu la tête à gauche','Turn your head slightly left'],pz3:['ارفع ذقنك قليلاً','Levez légèrement le menton','Lift your chin slightly'],pz4:['أخفض ذقنك قليلاً','Baissez légèrement le menton','Lower your chin slightly'],pz5:['وجه طبيعي، ابتسم قليلاً','Visage naturel, souriez un peu','Natural face, smile a little'],
  DN:['الأحد الإثنين الثلاثاء الأربعاء الخميس الجمعة السبت','dim. lun. mar. mer. jeu. ven. sam.','Sun Mon Tue Wed Thu Fri Sat']};
 var li=Math.max(0,['ar','fr','en'].indexOf(ls('plan_lang'))),TH={1:.50,2:.58,3:.64};
 var cfg={live:ls('fc_live')!=='0',s:+ls('fc_s')||2},SB=null,WK=[],T={},adm=0,run=0,mods=null,stream=null,dataErr='';
@@ -71,7 +92,7 @@ function hm(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinut
 function sow(d){var x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-x.getDay());return x}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
-var AC=null;function beep(a){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state!='running')AC.resume();var n=a=='no'?[[200,0],[150,.15]]:a=='out'?[[784,0],[523,.12]]:[[523,0],[784,.12],[1047,.24]];n.forEach(function(x){var o=AC.createOscillator(),g=AC.createGain(),s=AC.currentTime+x[1];o.type=a=='no'?'square':'sine';o.frequency.value=x[0];g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(.14,s+.01);g.gain.exponentialRampToValueAtTime(.0001,s+.2);o.connect(g);g.connect(AC.destination);o.start(s);o.stop(s+.25)})}catch(e){}}
+var AC=null;function beep(a){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state!='running')AC.resume();var n=a=='tick'?[[880,0]]:a=='no'?[[200,0],[150,.15]]:a=='out'?[[784,0],[523,.12]]:[[523,0],[784,.12],[1047,.24]];n.forEach(function(x){var o=AC.createOscillator(),g=AC.createGain(),s=AC.currentTime+x[1];o.type=a=='no'?'square':'sine';o.frequency.value=x[0];g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(.14,s+.01);g.gain.exponentialRampToValueAtTime(.0001,s+.2);o.connect(g);g.connect(AC.destination);o.start(s);o.stop(s+.25)})}catch(e){}}
 // ---- supabase (same session as the main app)
 async function raw(p,o){o=o||{};var h={apikey:SBK,'Content-Type':'application/json'};if(o.tok)h.Authorization='Bearer '+o.tok;if(o.h)for(var k in o.h)h[k]=o.h[k];
  var r=await fetch(SBU+p,{cache:'no-store',method:o.m||'GET',headers:h,body:o.b===undefined?undefined:JSON.stringify(o.b)});var x=await r.text(),j=null;try{j=x?JSON.parse(x):null}catch(e){}
@@ -83,7 +104,7 @@ async function data(){WK=await api('/rest/v1/workers?select=id,name&order=id.asc
 // ---- ui
 function show(){$('#lgn').style.display=SB?'none':'';$('#app').style.display=SB?'':'none';txt()}
 function txt(){var h=document.documentElement;h.lang=['ar','fr','en'][li];h.dir=li?'ltr':'rtl';$('#t0').textContent=$('#t1').textContent=t('title');$('#em').placeholder=t('em');$('#pw').placeholder=t('pw');$('#lb').textContent=t('login');
- $('#bi').textContent=t('in');$('#bo').textContent=t('out');$('#bi2').textContent=$('#bo2').textContent=t('ft');$('#lt').textContent=t('last');$('#cx').textContent=t('cancel');$('#camhelp').textContent=li===0?'ضع وجهك داخل الإطار، واجعل الإضاءة أمامك ثم انظر إلى الكاميرا.':li===1?'Placez votre visage dans le cadre, face à une bonne lumière.':'Keep your face inside the frame and face a light source.'}
+ $('#bi').textContent=t('in');$('#bo').textContent=t('out');$('#bi2').textContent=$('#bo2').textContent=t('ft');$('#lt').textContent=t('last');$('#cx').textContent=t('cancel');$('#rr').textContent=t('rt');$('#camhelp').textContent=li===0?'ضع وجهك داخل الإطار، واجعل الإضاءة أمامك ثم انظر إلى الكاميرا.':li===1?'Placez votre visage dans le cadre, face à une bonne lumière.':'Keep your face inside the frame and face a light source.'}
 function tick(){var n=new Date();$('#ck').textContent=hm(n)+':'+String(n.getSeconds()).padStart(2,'0');$('#cd').textContent=t('DN').split(' ')[n.getDay()]+' '+ymd(n)}setInterval(tick,1000);tick();
 async function recent(){try{var r=await api('/rest/v1/attendance?day=eq.'+ymd(new Date())+'&select=worker_id,t_in,t_out');
  $('#lst').innerHTML=r.map(function(a){var w=WK.filter(function(x){return x.id==a.worker_id})[0];return '<div>'+esc(w?w.name:'?')+' — '+(a.t_in||'--:--')+' → '+(a.t_out||'--:--')+'</div>'}).join('')||'—'}catch(e){}}
@@ -94,40 +115,52 @@ async function models(){if(mods)return mods;mods=(async function(){await faceapi
 async function camOn(){stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'user'},width:{ideal:320},height:{ideal:240},frameRate:{ideal:15,max:20}},audio:false});var v=$('#v');v.srcObject=stream;await v.play()}
 function camOff(){run=0;if(stream)stream.getTracks().forEach(function(x){x.stop()});stream=null;$('#cam').classList.remove('on')}
 function opt(){return new faceapi.TinyFaceDetectorOptions({inputSize:128,scoreThreshold:.38})}
-function say(s,c){$('#st').textContent=s;$('#vw').className='vw '+(c||'')}
+var S0='',FACE=0,LOCK='',LUM=255,lastLum=0,lastMode='in',RT=0;
+function frame(){$('#vw').className='vw '+S0+(FACE?' f1':'')}
+function say(s,c){$('#st').textContent=s;S0=c||'';frame()}
+function setFace(b){b=b?1:0;if(FACE!==b){FACE=b;frame()}}
+function hint(x){var h=$('#hn');if(x){h.textContent=x;h.className='hint on warn'}else if(LOCK){h.textContent='✓ '+LOCK;h.className='hint on good'}else h.className='hint'}
+function steps(a,live){var L=[t('g1')];if(live)L.push(t('g2'));L.push(t('g3'));$('#sp').innerHTML=L.map(function(x,i){return '<span class="stp'+(i<a?' dn':i==a?' on':'')+'"><i>'+(i<a?'✓':i+1)+'</i>'+x+'</span>'}).join('<u></u>')}
+function dots(n,tot){var h='';for(var i=0;i<tot;i++)h+='<b class="dt'+(i<n?' on':'')+'"></b>';$('#sp').innerHTML='<div class="dots">'+h+'</div>'}
+function tmr(t0,lim){var l=Math.max(0,lim-(Date.now()-t0));$('#ct').textContent=Math.ceil(l/1000)+'s';$('#pi').style.width=(100-l/lim*100)+'%'}
+function light(){var n=Date.now();if(n-lastLum<700)return LUM;lastLum=n;try{var v=$('#v');if(!v.videoWidth)return LUM;var c=light.c||(light.c=document.createElement('canvas'));c.width=24;c.height=18;var x=c.getContext('2d');x.drawImage(v,0,0,24,18);var p=x.getImageData(0,0,24,18).data,s=0;for(var i=0;i<p.length;i+=4)s+=.299*p[i]+.587*p[i+1]+.114*p[i+2];LUM=s/(p.length/4)}catch(e){}return LUM}
+function hintFor(d){if(!d)return light()<50?t('h4'):'';var vw=$('#v').videoWidth||320,b=d.detection.box,r=b.width/vw,cx=(b.x+b.width/2)/vw;return r<.3?t('h1'):r>.8?t('h2'):Math.abs(cx-.5)>.2?t('h3'):light()<50?t('h4'):''}
+function flashF(){var v=$('#vw');v.classList.add('fl');setTimeout(function(){v.classList.remove('fl')},260)}
 function match(d){var best=9,id=null,sec=9;for(var w in T){var m=9;T[w].forEach(function(x){m=Math.min(m,faceapi.euclideanDistance(x,d))});if(m<best){sec=best;best=m;id=w}else if(m<sec)sec=m}
  return best<TH[cfg.s]&&(sec-best>.04||Object.keys(T).length==1)?id:null}
 function ear(p){var d=function(a,b){return Math.hypot(a.x-b.x,a.y-b.y)};return (d(p[1],p[5])+d(p[2],p[4]))/(2*d(p[0],p[3]))}
 async function begin(){if(!navigator.mediaDevices){throw new Error(t('cam'))}$('#cam').classList.add('on');say(t('load'));await models();try{await camOn()}catch(e){throw new Error(t('cam'))}}
 async function scan(mode){if(!Object.keys(T).length){result(0,t('none'));return}
- var id0=++run;try{await begin()}catch(e){camOff();result(0,e.message);return}
- var t0=Date.now(),cand=null,hit=0,stage=0,op=0,cl=0,box=null,lastFrame=0;
+ lastMode=mode;LOCK='';FACE=0;S0='';var id0=++run,live=cfg.live;
+ $('#cm').textContent=t(mode);$('#cm').className='mode '+mode;steps(0,live);hint('');$('#pi').style.width='0';$('#ct').textContent='';
+ try{await begin()}catch(e){camOff();result(0,e.message);return}
+ var LIM=18000,t0=Date.now(),cand=null,hit=0,stage=0,op=0,cl=0,box=null,lastFrame=0,seen=Date.now();
  say(t('look'));
- while(run==id0&&Date.now()-t0<18000){
-  var now=Date.now(); if(now-lastFrame<120){await sleep(25);continue} lastFrame=now;
+ while(run==id0&&Date.now()-t0<LIM){
+  tmr(t0,LIM);
+  var now=Date.now(),gap=stage===1?30:120;if(now-lastFrame<gap){await sleep(15);continue}lastFrame=now;
   var d;
-  try{
-   if(stage===1){d=await faceapi.detectSingleFace($('#v'),opt()).withFaceLandmarks();}
-   else{d=await faceapi.detectSingleFace($('#v'),opt()).withFaceLandmarks().withFaceDescriptor();}
-  }catch(e){camOff();result(0,'تعذر تحليل الصورة','أعد فتح الكاميرا وحاول مجدداً');return}
-  if(!d){if(stage===0)hit=0;await sleep(10);continue}
-  if(stage===0){var m=match(d.descriptor);if(m&&m===cand)hit++;else{cand=m;hit=m?1:0}
-   if(hit>=2){if(!cfg.live){await done(cand,mode);return}stage=1;box=d.detection.box;say(t('blink'),'ok')}
-  }else if(stage===1){var b=d.detection.box;
-   if(Math.abs(b.x-box.x)>box.width*.8||Math.abs(b.y-box.y)>box.height*.8){stage=0;hit=0;cand=null;say(t('look'));continue}
+  try{if(stage===1){d=await faceapi.detectSingleFace($('#v'),opt()).withFaceLandmarks()}else{d=await faceapi.detectSingleFace($('#v'),opt()).withFaceLandmarks().withFaceDescriptor()}}
+  catch(e){camOff();result(0,t('an'),'',null,true);return}
+  setFace(!!d);
+  if(!d){if(stage===0)hit=0;hint(Date.now()-seen>2500?t('h0'):hintFor(null));await sleep(10);continue}
+  seen=Date.now();
+  if(stage===0){hint(hintFor(d));var m=match(d.descriptor);if(m&&m===cand)hit++;else{cand=m;hit=m?1:0}
+   if(hit>=2){var w=WK.filter(function(x){return x.id==cand})[0];LOCK=w?w.name:'';if(!live){await done(cand,mode);return}
+    stage=1;box=d.detection.box;steps(1,true);say('👁 '+t('blink'),'ok');beep('tick');hint('')}
+  }else{var b=d.detection.box;
+   if(Math.abs(b.x-box.x)>box.width*.8||Math.abs(b.y-box.y)>box.height*.8){stage=0;hit=0;cand=null;LOCK='';op=cl=0;steps(0,true);say(t('look'));hint('');continue}
    var e=(ear(d.landmarks.getLeftEye())+ear(d.landmarks.getRightEye()))/2;if(e>.25)op=1;if(op&&e<.19)cl=1;
-   if(cl&&e>.22){await done(cand,mode);return}
-  }
-  await sleep(8)
- }
- if(run==id0){camOff();result(0,t('no'),'قرّب وجهك من الهاتف، حسّن الإضاءة، وانظر مباشرة إلى الكاميرا ثم حاول مجدداً')}}
+   if(cl&&e>.22){steps(2,true);await done(cand,mode);return}}
+  await sleep(8)}
+ if(run==id0){camOff();result(0,t('no'),t('tip'),null,true)}}
 async function done(id,mode){run=0;say('✓','ok');var w=WK.filter(function(x){return x.id==id})[0],n=new Date(),day=ymd(n),tm=hm(n);
  try{var c=(await api('/rest/v1/attendance?day=eq.'+day+'&worker_id=eq.'+id+'&select=t_in,t_out'))[0]||{};camOff();
   if(mode=='in'&&c.t_in){result(0,w.name,t('dup')+' '+c.t_in);return}
   var row={day:day,worker_id:+id,t_in:c.t_in||null,t_out:c.t_out||null};row[mode=='in'?'t_in':'t_out']=tm;
   await api('/rest/v1/weeks?on_conflict=week_start',{m:'POST',h:UP,b:[{week_start:ymd(sow(n))}]});await api('/rest/v1/attendance?on_conflict=day,worker_id',{m:'POST',h:UP,b:[row]});
   result(1,t('hi')+' '+w.name,t(mode+'ok')+' · '+tm,mode);recent()}catch(e){camOff();result(0,t('net'),e.message)}}
-function result(ok,a,b,m){beep(ok?m:'no');$('#rc').textContent=ok?'✓':'✕';$('#rc').style.background=ok?'var(--ok)':'var(--bad)';$('#rt').textContent=a;$('#rs').textContent=b||'';$('#res').classList.add('on');setTimeout(function(){$('#res').classList.remove('on')},ok?2400:3200)}
+function result(ok,a,b,m,rt){beep(ok?m:'no');$('#rc').textContent=ok?'✓':'✕';$('#rc').style.background=ok?'var(--ok)':'var(--bad)';$('#rt').textContent=a;$('#rs').textContent=b||'';$('#rr').style.display=rt?'':'none';$('#res').classList.add('on');clearTimeout(RT);RT=setTimeout(function(){$('#res').classList.remove('on')},ok?2400:(rt?10000:3200))}
 // ---- admin (password re-check) + enrollment
 function askPw(){if(adm>Date.now())return Promise.resolve(true);return new Promise(function(res){$('#sb').innerHTML='<b style="font-size:17px">'+t('ap')+'</b><input type="password" id="ap" autocomplete="current-password"><div class="err" id="ae"></div><button class="pri" id="ag">OK</button><button class="sec" id="ac">'+t('cancel')+'</button>';$('#sh').classList.add('on');
  $('#ac').onclick=function(){$('#sh').classList.remove('on');res(false)};
@@ -137,13 +170,19 @@ function panel(){$('#sb').innerHTML='<b style="font-size:17px">'+t('adm')+'</b>'
  '<div class="lg"><span>'+t('sens')+'</span><span>'+[1,2,3].map(function(i){return '<button class="'+(cfg.s==i?'on':'')+'" data-a="sens" data-v="'+i+'">'+t('s'+i)+'</button>'}).join(' ')+'</span></div>'+
  '<div class="lg"><span></span><span>'+['العربية','Français','English'].map(function(n,i){return '<button class="'+(li==i?'on':'')+'" data-a="lang" data-v="'+i+'">'+n+'</button>'}).join(' ')+'</span></div>'+
  '<button class="sec" data-a="lo">'+t('out2')+'</button><button class="sec" data-a="close">'+t('close')+'</button>'}
-async function enroll(id){$('#sh').classList.remove('on');var id0=++run,S=[],last=0;try{await begin()}catch(e){camOff();result(0,e.message);return}
- var t0=Date.now();say(t('look'));while(run==id0&&S.length<6&&Date.now()-t0<30000){await sleep(120);var d=await faceapi.detectSingleFace($('#v'),opt()).withFaceLandmarks().withFaceDescriptor();
-  if(d&&d.detection.score>.7&&d.detection.box.width>$('#v').videoWidth*.25&&Date.now()-last>700){S.push(Array.from(d.descriptor));last=Date.now();say(S.length+'/6 · '+t('mv'),'ok')}await sleep(40)}
- if(run!=id0)return;camOff();if(S.length<6){result(0,t('no'));return}
+async function enroll(id){$('#sh').classList.remove('on');var id0=++run,S=[],last=0,LIM=40000;LOCK='';FACE=0;S0='';
+ $('#cm').textContent=t('enr');$('#cm').className='mode en';dots(0,6);hint('');$('#pi').style.width='0';$('#ct').textContent='';
+ try{await begin()}catch(e){camOff();result(0,e.message);return}
+ var t0=Date.now(),seen=Date.now();say(t('pz0'));
+ while(run==id0&&S.length<6&&Date.now()-t0<LIM){tmr(t0,LIM);await sleep(120);
+  var d=await faceapi.detectSingleFace($('#v'),opt()).withFaceLandmarks().withFaceDescriptor();setFace(!!d);
+  if(!d){hint(Date.now()-seen>2500?t('h0'):hintFor(null));continue}seen=Date.now();hint(hintFor(d));
+  if(d.detection.score>.7&&d.detection.box.width>$('#v').videoWidth*.25&&Date.now()-last>900){S.push(Array.from(d.descriptor));last=Date.now();flashF();beep('tick');dots(S.length,6);say(S.length<6?t('pz'+S.length):'✓','ok')}
+  await sleep(40)}
+ if(run!=id0)return;camOff();if(S.length<6){result(0,t('no'),t('tip'));return}
  try{await api('/rest/v1/face_templates?on_conflict=worker_id',{m:'POST',h:UP,b:[{worker_id:+id,descriptors:S,updated_at:new Date().toISOString()}]});T[id]=S.map(function(x){return new Float32Array(x)});result(1,t('saved'),'','in')}catch(e){result(0,e.message)}}
-document.addEventListener('click',async function(ev){var b=ev.target.closest('[data-a]');if(ev.target.id=='sh'){$('#sh').classList.remove('on');return}if(!b)return;var a=b.dataset.a,id=b.dataset.id;
- if(a=='login')login();else if(a=='scan')scan(b.dataset.m);else if(a=='stop'){camOff()}else if(a=='reload'){try{dataErr='';await data();panel()}catch(e){dataErr=e.message||String(e);panel()}}
+document.addEventListener('click',async function(ev){var b=ev.target.closest('[data-a]');if(ev.target.id=='sh'){$('#sh').classList.remove('on');return}if(!b&&ev.target.closest('#res')){$('#res').classList.remove('on');return}if(!b)return;var a=b.dataset.a,id=b.dataset.id;
+ if(a=='login')login();else if(a=='scan')scan(b.dataset.m);else if(a=='stop'){camOff()}else if(a=='retry'){$('#res').classList.remove('on');scan(lastMode)}else if(a=='reload'){try{dataErr='';await data();panel()}catch(e){dataErr=e.message||String(e);panel()}}
  else if(a=='adm'){if(await askPw()){panel();$('#sh').classList.add('on')}}
  else if(a=='close')$('#sh').classList.remove('on');else if(a=='enr')enroll(id);
  else if(a=='fdel'){try{await api('/rest/v1/face_templates?worker_id=eq.'+id,{m:'DELETE',h:{Prefer:'return=minimal'}});delete T[id];panel()}catch(e){alert(e.message)}}
